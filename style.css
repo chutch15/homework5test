@@ -1,0 +1,27 @@
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
+
+h1 {
+    margin-bottom: 10px;
+}
+
+#chart {
+    margin-top: 20px;
+}
+
+.item-label {
+    font-size: 10px;
+    text-anchor: middle;
+    pointer-events: none;
+}
+
+svg {
+    background: #fafafa;
+    border: 1px solid #ddd;
+}
+
+#description {
+    max-width: 700px;
+}
