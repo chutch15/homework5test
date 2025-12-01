@@ -1,31 +1,34 @@
 d3.csv("ToolsAndArmors.csv").then(data => {
 
-    // Parse values
+    // Parse and clean
     data.forEach(d => {
-        d.durability = +d.durability;
         d.year = +d.debutDate.substring(0, 4);
+        d.durability = +d.durability;
     });
 
-    // Filter items WITH durability
+    // Keep only items with durability
     data = data.filter(d => !isNaN(d.durability));
 
-    const width = 1100;
-    const height = 650;
-    const padding = 70;
+    // SVG setup
+    const width = 1200;
+    const height = 700;
+    const padding = 90;
 
     const svg = d3.select("#chart")
+        .html("")
         .append("svg")
         .attr("width", width)
         .attr("height", height);
 
+    // Tooltip
     const tooltip = d3.select("body")
         .append("div")
         .attr("class", "tooltip");
 
-    // SCALES --------------------------------------------------------
+    // Scales
     const xScale = d3.scaleLinear()
         .domain(d3.extent(data, d => d.year))
-        .range([padding, width - padding]);
+        .range([padding, width - padding - 20]);
 
     const yScale = d3.scaleLinear()
         .domain([0, d3.max(data, d => d.durability)])
@@ -33,60 +36,32 @@ d3.csv("ToolsAndArmors.csv").then(data => {
 
     const sizeScale = d3.scaleSqrt()
         .domain(d3.extent(data, d => d.durability))
-        .range([6, 26]);
+        .range([5, 25]);
 
-    const colorScale = d3.scaleSequential()
+    const colorScale = d3.scaleLinear()
         .domain(d3.extent(data, d => d.year))
-        .interpolator(d3.interpolateTurbo);
+        .range(["#89CFF0", "#003f5c"]);
 
-    // GLYPH DRAWING -------------------------------------------------
-    function drawGlyph(g, d) {
-        const s = sizeScale(d.durability);
-        const color = colorScale(d.year);
+    // GRIDLINES ----------------------------------------------------
+    const xAxisGrid = d3.axisBottom(xScale)
+        .tickSize(-(height - padding * 2))
+        .tickFormat("");
 
-        if (d.type.toLowerCase().includes("weapon")) {
-            g.append("circle")
-                .attr("r", s)
-                .attr("fill", color);
-        }
-        else if (d.type.toLowerCase().includes("tool")) {
-            g.append("rect")
-                .attr("x", -s)
-                .attr("y", -s)
-                .attr("width", s * 2)
-                .attr("height", s * 2)
-                .attr("fill", color);
-        }
-        else {
-            const h = s * 1.8;
-            g.append("path")
-                .attr("d", `M0 ${-h} L${s} ${h} L${-s} ${h} Z`)
-                .attr("fill", color);
-        }
-    }
+    const yAxisGrid = d3.axisLeft(yScale)
+        .tickSize(-(width - padding * 2))
+        .tickFormat("");
 
-    // POINTS --------------------------------------------------------
-    svg.selectAll("g.item")
-        .data(data)
-        .enter()
-        .append("g")
-        .attr("class", "item")
-        .attr("transform", d => `translate(${xScale(d.year)}, ${yScale(d.durability)})`)
-        .each(function(d) {
-            drawGlyph(d3.select(this), d);
-        })
-        .on("mousemove", function (event, d) {
-            tooltip.style("visibility", "visible")
-                .html(`<b>${d.name}</b><br>
-                       Type: ${d.type}<br>
-                       Debut: ${d.year}<br>
-                       Durability: ${d.durability}`)
-                .style("top", (event.pageY - 40) + "px")
-                .style("left", (event.pageX + 15) + "px");
-        })
-        .on("mouseout", () => tooltip.style("visibility", "hidden"));
+    svg.append("g")
+        .attr("class", "grid")
+        .attr("transform", `translate(0, ${height - padding})`)
+        .call(xAxisGrid);
 
-    // AXES ----------------------------------------------------------
+    svg.append("g")
+        .attr("class", "grid")
+        .attr("transform", `translate(${padding}, 0)`)
+        .call(yAxisGrid);
+
+    // AXES ---------------------------------------------------------
     const xAxis = d3.axisBottom(xScale).ticks(10).tickFormat(d3.format("d"));
     const yAxis = d3.axisLeft(yScale);
 
@@ -98,62 +73,91 @@ d3.csv("ToolsAndArmors.csv").then(data => {
         .attr("transform", `translate(${padding}, 0)`)
         .call(yAxis);
 
-    // AXIS LABELS
+    // Axis labels
     svg.append("text")
         .attr("x", width / 2)
-        .attr("y", height - 20)
+        .attr("y", height - 35)
         .attr("text-anchor", "middle")
+        .style("font-size", "15px")
         .text("Debut Year");
 
     svg.append("text")
         .attr("transform", "rotate(-90)")
         .attr("x", -height / 2)
-        .attr("y", 25)
+        .attr("y", 30)
         .attr("text-anchor", "middle")
+        .style("font-size", "15px")
         .text("Durability");
 
-    // LEGENDS -------------------------------------------------------
+    // GLYPH DRAW ---------------------------------------------------
+    function drawGlyph(g, d) {
+        const size = sizeScale(d.durability);
+        const color = colorScale(d.year);
+        const type = d.type.toLowerCase();
 
-    // Shape legend
-    const shapeLegend = svg.append("g")
-        .attr("transform", "translate(80, 80)");
+        if (type.includes("weapon")) {
+            g.append("circle")
+                .attr("r", size)
+                .attr("fill", color);
+        } else if (type.includes("tool")) {
+            g.append("rect")
+                .attr("x", -size)
+                .attr("y", -size)
+                .attr("width", size * 2)
+                .attr("height", size * 2)
+                .attr("fill", color);
+        } else {
+            const h = size * 1.6;
+            g.append("path")
+                .attr("d", `M0 ${-h} L${size} ${h} L${-size} ${h} Z`)
+                .attr("fill", color);
+        }
+    }
 
-    shapeLegend.append("text")
+    // POINTS -------------------------------------------------------
+    svg.selectAll("g.point")
+        .data(data)
+        .enter()
+        .append("g")
+        .attr("class", "point")
+        .attr("transform", d => `translate(${xScale(d.year)}, ${yScale(d.durability)})`)
+        .each(function(d) { drawGlyph(d3.select(this), d); })
+        .on("mousemove", (event, d) => {
+            tooltip.style("visibility", "visible")
+                .html(`
+                    <b>${d.name}</b><br>
+                    Type: ${d.type}<br>
+                    Debut: ${d.year}<br>
+                    Durability: ${d.durability}
+                `)
+                .style("top", (event.pageY - 50) + "px")
+                .style("left", (event.pageX + 20) + "px");
+        })
+        .on("mouseout", () => tooltip.style("visibility", "hidden"));
+
+    // LEGEND -------------------------------------------------------
+    const legend = svg.append("g")
+        .attr("transform", "translate(1000, 120)");
+
+    legend.append("text")
         .attr("class", "legend-title")
-        .text("Shape = Item Type");
+        .text("Glyph Shape = Type");
 
-    shapeLegend.append("circle")
-        .attr("cx", 0).attr("cy", 25).attr("r", 10).attr("fill", "#999");
-    shapeLegend.append("text").attr("x", 25).attr("y", 30).text("Weapon");
+    // Weapon
+    legend.append("circle")
+        .attr("cx", 0).attr("cy", 25).attr("r", 10).attr("fill", "#777");
+    legend.append("text").attr("x", 25).attr("y", 30).text("Weapon");
 
-    shapeLegend.append("rect")
-        .attr("x", -10).attr("y", 45).attr("width", 20).attr("height", 20).attr("fill", "#999");
-    shapeLegend.append("text").attr("x", 25).attr("y", 60).text("Tool");
+    // Tool
+    legend.append("rect")
+        .attr("x", -10).attr("y", 45).attr("width", 20).attr("height", 20)
+        .attr("fill", "#777");
+    legend.append("text").attr("x", 25).attr("y", 60).text("Tool");
 
-    shapeLegend.append("path")
-        .attr("d", "M0 95 L10 115 L-10 115 Z")
-        .attr("fill", "#999");
-    shapeLegend.append("text").attr("x", 25).attr("y", 113).text("Armor");
+    // Armor
+    legend.append("path")
+        .attr("d", "M0 90 L10 110 L-10 110 Z")
+        .attr("fill", "#777");
+    legend.append("text").attr("x", 25).attr("y", 107).text("Armor");
 
-    // Color legend (year gradient)
-    const defs = svg.append("defs");
-    const gradient = defs.append("linearGradient")
-        .attr("id", "yearGradient")
-        .attr("x1", "0%").attr("x2", "100%");
-
-    gradient.append("stop").attr("offset", "0%").attr("stop-color", colorScale(d3.min(data, d => d.year)));
-    gradient.append("stop").attr("offset", "100%").attr("stop-color", colorScale(d3.max(data, d => d.year)));
-
-    svg.append("rect")
-        .attr("x", width - 300)
-        .attr("y", 60)
-        .attr("width", 200)
-        .attr("height", 18)
-        .style("fill", "url(#yearGradient)");
-
-    svg.append("text")
-        .attr("x", width - 305)
-        .attr("y", 55)
-        .attr("class", "legend-title")
-        .text("Color = Debut Year");
 });
