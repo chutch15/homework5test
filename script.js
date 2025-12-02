@@ -91,28 +91,36 @@ d3.csv("ToolsAndArmors.csv").then(data => {
 
     // GLYPH DRAW ---------------------------------------------------
     function drawGlyph(g, d) {
-        const size = sizeScale(d.durability);
-        const color = colorScale(d.year);
-        const type = d.type.toLowerCase();
+    const size = sizeScale(d.durability);
+    const color = colorScale(d.year);
+    const type = d.type.toLowerCase();
 
-        if (type.includes("weapon")) {
-            g.append("circle")
-                .attr("r", size)
-                .attr("fill", color);
-        } else if (type.includes("tool")) {
-            g.append("rect")
-                .attr("x", -size)
-                .attr("y", -size)
-                .attr("width", size * 2)
-                .attr("height", size * 2)
-                .attr("fill", color);
-        } else {
-            const h = size * 1.6;
-            g.append("path")
-                .attr("d", `M0 ${-h} L${size} ${h} L${-size} ${h} Z`)
-                .attr("fill", color);
-        }
+    let path = "";
+
+    // Choose actual Minecraft-like silhouettes
+    if (type.includes("weapon")) {
+        path = "M0 -15 L3 -5 L1 -5 L1 15 L-1 15 L-1 -5 L-3 -5 Z"; // sword
     }
+    else if (type.includes("tool")) {
+        path = "M0 -18 L3 -15 L-5 -7 L-3 -5 L2 -10 L5 -7 L-3 2 L-1 4 L0 3 L1 4 L3 2 L-5 -7 L-3 -9 Z"; // pickaxe
+    }
+    else if (type.includes("armor")) {
+        path = "M-10 -15 L10 -15 L12 -5 L8 15 L-8 15 L-12 -5 Z"; // chestplate
+    }
+    else {
+        // fallback icon
+        path = "M0 -12 L12 0 L0 12 L-12 0 Z";
+    }
+
+    // Draw the outlined glyph
+    g.append("path")
+        .attr("d", path)
+        .attr("fill", color)
+        .attr("stroke", "#222")
+        .attr("stroke-width", 1.5)
+        .attr("transform", `scale(${size / 10})`);
+}
+
 
     // POINTS -------------------------------------------------------
     svg.selectAll("g.point")
