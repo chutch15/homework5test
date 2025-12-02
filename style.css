@@ -60,4 +60,7 @@ svg {
     visibility: hidden;
 }
 
+    path {
+    shape-rendering: geometricPrecision;
+}
 }
