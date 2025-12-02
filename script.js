@@ -173,3 +173,4 @@ d3.csv("ToolsAndArmors.csv").then(data => {
         .text("Armor");
 
 });
+ 
