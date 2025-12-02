@@ -20,27 +20,7 @@ svg {
     box-shadow: 0 0 12px rgba(0,0,0,0.05);
 }
 
-.item-label {
-    font-size: 9px;
-    pointer-events: none;
-}
-
-.legend-title {
-    font-size: 14px;
-    font-weight: bold;
-}
-
-.tooltip {
-    position: absolute;
-    background: white;
-    padding: 6px 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 12px;
-    pointer-events: none;
-    visibility: hidden;
-
-    .grid line {
+.grid line {
     stroke: #ddd;
     stroke-opacity: 0.7;
 }
@@ -60,7 +40,11 @@ svg {
     visibility: hidden;
 }
 
-    path {
-    shape-rendering: geometricPrecision;
+.legend-title {
+    font-size: 14px;
+    font-weight: bold;
 }
+
+path, rect, circle {
+    shape-rendering: geometricPrecision;
 }
