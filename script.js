@@ -1,15 +1,13 @@
 d3.csv("ToolsAndArmors.csv").then(data => {
 
-    // Parse and clean
+    // Parse + sanitize
     data.forEach(d => {
         d.year = +d.debutDate.substring(0, 4);
         d.durability = +d.durability;
     });
 
-    // Keep only items with durability
     data = data.filter(d => !isNaN(d.durability));
 
-    // SVG setup
     const width = 1200;
     const height = 700;
     const padding = 90;
@@ -20,12 +18,11 @@ d3.csv("ToolsAndArmors.csv").then(data => {
         .attr("width", width)
         .attr("height", height);
 
-    // Tooltip
     const tooltip = d3.select("body")
         .append("div")
         .attr("class", "tooltip");
 
-    // Scales
+    // --------------------- SCALES ---------------------
     const xScale = d3.scaleLinear()
         .domain(d3.extent(data, d => d.year))
         .range([padding, width - padding - 20]);
@@ -34,46 +31,34 @@ d3.csv("ToolsAndArmors.csv").then(data => {
         .domain([0, d3.max(data, d => d.durability)])
         .range([height - padding, padding]);
 
-    const sizeScale = d3.scaleSqrt()
-        .domain(d3.extent(data, d => d.durability))
-        .range([5, 25]);
-
-    const colorScale = d3.scaleLinear()
-        .domain(d3.extent(data, d => d.year))
-        .range(["#89CFF0", "#003f5c"]);
-
-    // GRIDLINES ----------------------------------------------------
-    const xAxisGrid = d3.axisBottom(xScale)
+    // --------------------- GRIDLINES ---------------------
+    const xGrid = d3.axisBottom(xScale)
         .tickSize(-(height - padding * 2))
         .tickFormat("");
 
-    const yAxisGrid = d3.axisLeft(yScale)
+    const yGrid = d3.axisLeft(yScale)
         .tickSize(-(width - padding * 2))
         .tickFormat("");
 
     svg.append("g")
         .attr("class", "grid")
         .attr("transform", `translate(0, ${height - padding})`)
-        .call(xAxisGrid);
+        .call(xGrid);
 
     svg.append("g")
         .attr("class", "grid")
         .attr("transform", `translate(${padding}, 0)`)
-        .call(yAxisGrid);
+        .call(yGrid);
 
-    // AXES ---------------------------------------------------------
-    const xAxis = d3.axisBottom(xScale).ticks(10).tickFormat(d3.format("d"));
-    const yAxis = d3.axisLeft(yScale);
-
+    // --------------------- AXES ---------------------
     svg.append("g")
         .attr("transform", `translate(0, ${height - padding})`)
-        .call(xAxis);
+        .call(d3.axisBottom(xScale).ticks(10).tickFormat(d3.format("d")));
 
     svg.append("g")
         .attr("transform", `translate(${padding}, 0)`)
-        .call(yAxis);
+        .call(d3.axisLeft(yScale));
 
-    // Axis labels
     svg.append("text")
         .attr("x", width / 2)
         .attr("y", height - 35)
@@ -84,45 +69,45 @@ d3.csv("ToolsAndArmors.csv").then(data => {
     svg.append("text")
         .attr("transform", "rotate(-90)")
         .attr("x", -height / 2)
-        .attr("y", 30)
+        .attr("y", 35)
         .attr("text-anchor", "middle")
         .style("font-size", "15px")
         .text("Durability");
 
-    // GLYPH DRAW ---------------------------------------------------
+    // --------------------- CUSTOM GLYPH DRAWER ---------------------
     function drawGlyph(g, d) {
-    const size = sizeScale(d.durability);
-    const color = colorScale(d.year);
-    const type = d.type.toLowerCase();
+        const size = 14;
+        const type = d.type.toLowerCase();
 
-    let path = "";
-
-    // Choose actual Minecraft-like silhouettes
-    if (type.includes("weapon")) {
-        path = "M0 -15 L3 -5 L1 -5 L1 15 L-1 15 L-1 -5 L-3 -5 Z"; // sword
+        if (type.includes("weapon")) {
+            g.append("rect")
+                .attr("x", -size)
+                .attr("y", -size)
+                .attr("width", size * 2)
+                .attr("height", size * 2)
+                .attr("fill", "#d9534f")
+                .attr("stroke", "#222")
+                .attr("stroke-width", 1.5);
+        }
+        else if (type.includes("tool")) {
+            g.append("circle")
+                .attr("r", size)
+                .attr("fill", "#5cb85c")
+                .attr("stroke", "#222")
+                .attr("stroke-width", 1.5);
+        }
+        else if (type.includes("armor")) {
+            const chest = "M-10 -15 L10 -15 L12 -5 L8 15 L-8 15 L-12 -5 Z";
+            g.append("path")
+                .attr("d", chest)
+                .attr("fill", "#0275d8")
+                .attr("stroke", "#222")
+                .attr("stroke-width", 1.5)
+                .attr("transform", `scale(${size / 10})`);
+        }
     }
-    else if (type.includes("tool")) {
-        path = "M0 -18 L3 -15 L-5 -7 L-3 -5 L2 -10 L5 -7 L-3 2 L-1 4 L0 3 L1 4 L3 2 L-5 -7 L-3 -9 Z"; // pickaxe
-    }
-    else if (type.includes("armor")) {
-        path = "M-10 -15 L10 -15 L12 -5 L8 15 L-8 15 L-12 -5 Z"; // chestplate
-    }
-    else {
-        // fallback icon
-        path = "M0 -12 L12 0 L0 12 L-12 0 Z";
-    }
 
-    // Draw the outlined glyph
-    g.append("path")
-        .attr("d", path)
-        .attr("fill", color)
-        .attr("stroke", "#222")
-        .attr("stroke-width", 1.5)
-        .attr("transform", `scale(${size / 10})`);
-}
-
-
-    // POINTS -------------------------------------------------------
+    // --------------------- PLOTTING ---------------------
     svg.selectAll("g.point")
         .data(data)
         .enter()
@@ -143,29 +128,48 @@ d3.csv("ToolsAndArmors.csv").then(data => {
         })
         .on("mouseout", () => tooltip.style("visibility", "hidden"));
 
-    // LEGEND -------------------------------------------------------
+    // --------------------- LEGEND ---------------------
     const legend = svg.append("g")
-        .attr("transform", "translate(1000, 120)");
+        .attr("transform", "translate(1000, 160)");
 
     legend.append("text")
         .attr("class", "legend-title")
-        .text("Glyph Shape = Type");
+        .text("Glyph = Item Type");
 
-    // Weapon
-    legend.append("circle")
-        .attr("cx", 0).attr("cy", 25).attr("r", 10).attr("fill", "#777");
-    legend.append("text").attr("x", 25).attr("y", 30).text("Weapon");
-
-    // Tool
+    // Weapon square
     legend.append("rect")
-        .attr("x", -10).attr("y", 45).attr("width", 20).attr("height", 20)
-        .attr("fill", "#777");
-    legend.append("text").attr("x", 25).attr("y", 60).text("Tool");
+        .attr("x", -10).attr("y", 25)
+        .attr("width", 20).attr("height", 20)
+        .attr("fill", "#d9534f")
+        .attr("stroke", "#222")
+        .attr("stroke-width", 1.5);
+    legend.append("text")
+        .attr("x", 25)
+        .attr("y", 40)
+        .text("Weapon");
 
-    // Armor
+    // Tool circle
+    legend.append("circle")
+        .attr("cx", 0).attr("cy", 70)
+        .attr("r", 10)
+        .attr("fill", "#5cb85c")
+        .attr("stroke", "#222")
+        .attr("stroke-width", 1.5);
+    legend.append("text")
+        .attr("x", 25)
+        .attr("y", 75)
+        .text("Tool");
+
+    // Armor chestplate
     legend.append("path")
-        .attr("d", "M0 90 L10 110 L-10 110 Z")
-        .attr("fill", "#777");
-    legend.append("text").attr("x", 25).attr("y", 107).text("Armor");
+        .attr("d", "M-10 -15 L10 -15 L12 -5 L8 15 L-8 15 L-12 -5 Z")
+        .attr("transform", "translate(0,125)")
+        .attr("fill", "#0275d8")
+        .attr("stroke", "#222")
+        .attr("stroke-width", 1.5);
+    legend.append("text")
+        .attr("x", 25)
+        .attr("y", 130)
+        .text("Armor");
 
 });
